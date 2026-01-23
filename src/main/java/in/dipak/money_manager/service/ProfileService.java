@@ -32,18 +32,40 @@ public class ProfileService {
 
 
     public ProfileDTO registerProfile(ProfileDTO profileDTO) {
-        ProfileEntity newProfile =  toEntity(profileDTO);
+        ProfileEntity newProfile = toEntity(profileDTO);
         newProfile.setActivationToken(UUID.randomUUID().toString());
         newProfile = profileRepository.save(newProfile);
 
-//        send activation email
-        String activationLink = activationURL+"/api/v2.0/activate?token=" + newProfile.getActivationToken();
+        // Create the link
+        String activationLink = activationURL + "/api/v2.0/activate?token=" + newProfile.getActivationToken();
         String subject = "Activate Your Money Manager Account";
-        String body = "Click on the following link to activate your account: "+ activationLink;
-        emailService.sendEmail(newProfile.getEmail(), subject,body);
+        String body = "Click on the following link to activate your account: " + activationLink;
+
+        // 🛑 SAFETY BLOCK: Try to send email, but don't crash if it fails
+        try {
+            emailService.sendEmail(newProfile.getEmail(), subject, body);
+            System.out.println("✅ Email sent successfully to: " + newProfile.getEmail());
+        } catch (Exception e) {
+            // If email fails, Log the error BUT let the user finish registration!
+            System.err.println("❌ EMAIL FAILED TO SEND: " + e.getMessage());
+            System.out.println("⚠️ MANUAL ACTIVATION LINK: " + activationLink);
+        }
 
         return toDTO(newProfile);
     }
+//    public ProfileDTO registerProfile(ProfileDTO profileDTO) {
+//        ProfileEntity newProfile =  toEntity(profileDTO);
+//        newProfile.setActivationToken(UUID.randomUUID().toString());
+//        newProfile = profileRepository.save(newProfile);
+//
+////        send activation email
+//        String activationLink = activationURL+"/api/v2.0/activate?token=" + newProfile.getActivationToken();
+//        String subject = "Activate Your Money Manager Account";
+//        String body = "Click on the following link to activate your account: "+ activationLink;
+//        emailService.sendEmail(newProfile.getEmail(), subject,body);
+//
+//        return toDTO(newProfile);
+//    }
     public ProfileEntity toEntity(ProfileDTO profileDTO) {
         return ProfileEntity.builder()
                 .id(profileDTO.getId())
