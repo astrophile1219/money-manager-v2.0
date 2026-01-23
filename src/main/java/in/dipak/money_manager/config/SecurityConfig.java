@@ -1,7 +1,6 @@
 package in.dipak.money_manager.config;
 
 import in.dipak.money_manager.security.JwtRequestFilter;
-import in.dipak.money_manager.service.AppUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
