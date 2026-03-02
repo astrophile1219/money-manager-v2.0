@@ -20,15 +20,15 @@ import java.util.List;
 public class IncomeService {
     private final CategoryRepository categoryRepository;
     private final IncomeRepository incomeRepository;
-//    private final ProfileService profileService;
+    //    private final ProfileService profileService;
     private final ProfileService profileService;
 
-//    Adds new income to the database;
+    //    Adds new income to the database;
     public IncomeDTO addIncome(IncomeDTO dto) {
         ProfileEntity profile = profileService.getCurrentProfile();
         CategoryEntity category = categoryRepository.findById(dto.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not Found!"));
-        IncomeEntity newIncome = toEntity(dto,profile,category);
+        IncomeEntity newIncome = toEntity(dto, profile, category);
         newIncome = incomeRepository.save(newIncome);
         return toDTO(newIncome);
     }
@@ -37,9 +37,27 @@ public class IncomeService {
     public List<IncomeDTO> getCurrentMonthIncomesForCurrentUser() {
         ProfileEntity profile = profileService.getCurrentProfile();
         LocalDate now = LocalDate.now();
+
+        // 🔹 Current month range
         LocalDate startDate = now.withDayOfMonth(1);
         LocalDate endDate = now.withDayOfMonth(now.lengthOfMonth());
-        List<IncomeEntity> list = incomeRepository.findByProfileIdAndDateBetween(profile.getId(),startDate,endDate);
+
+        List<IncomeEntity> list =
+                incomeRepository.findByProfileIdAndDateBetween(
+                        profile.getId(), startDate, endDate);
+
+        // 🔥 If no records found → fetch previous month
+        if (list.isEmpty()) {
+
+            LocalDate previousMonth = now.minusMonths(1);
+
+            LocalDate prevStart = previousMonth.withDayOfMonth(1);
+            LocalDate prevEnd = previousMonth.withDayOfMonth(previousMonth.lengthOfMonth());
+
+            list = incomeRepository.findByProfileIdAndDateBetween(
+                    profile.getId(), prevStart, prevEnd);
+        }
+
         return list.stream().map(this::toDTO).toList();
     }
 

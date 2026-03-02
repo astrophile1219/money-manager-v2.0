@@ -22,7 +22,7 @@ public class ExpenseController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ExpenseDTO>> getIncomes() {
+    public ResponseEntity<List<ExpenseDTO>> getExpenses() {
         List<ExpenseDTO> expenses = expenseService.getCurrentMonthExpensesForCurrentUser();
         return ResponseEntity.ok(expenses);
     }

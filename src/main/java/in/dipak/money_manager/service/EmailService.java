@@ -3,15 +3,16 @@ package in.dipak.money_manager.service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j  // ✅ Added
 public class EmailService {
     private final JavaMailSender mailSender;
 
@@ -20,16 +21,18 @@ public class EmailService {
 
     public void sendEmail(String to, String subject, String body) {
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
-            message.setTo(to);
-            message.setText(body);
-            message.setSubject(subject);
+            // ✅ Replaced SimpleMailMessage with MimeMessage for HTML support
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromEmail);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(body, true); // ✅ true = HTML enabled
             mailSender.send(message);
-        }catch (Exception e) {
-            System.out.println("hey there! I am here again.");
-//            e.printStackTrace();
-            throw new RuntimeException(e.getMessage());
+            log.info("✅ Email sent to: {}", to);
+        } catch (MessagingException e) {
+            log.error("❌ Failed to send email to: {} | Error: {}", to, e.getMessage());
+            throw new RuntimeException("Failed to send email: " + e.getMessage(), e);
         }
     }
 
@@ -42,26 +45,17 @@ public class EmailService {
     ) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
-
-            MimeMessageHelper helper =
-                    new MimeMessageHelper(message, true, "UTF-8");
-
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setFrom(fromEmail);
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(body, false); // false = plain text
-
-            helper.addAttachment(
-                    filename,
-                    new ByteArrayResource(attachment)
-            );
-
+            helper.setText(body, true); // ✅ Changed false → true for HTML support
+            helper.addAttachment(filename, new ByteArrayResource(attachment));
             mailSender.send(message);
-
+            log.info("✅ Email with attachment sent to: {}", to);
         } catch (MessagingException e) {
-            throw new RuntimeException("Failed to send email with attachment", e);
+            log.error("❌ Failed to send email with attachment to: {} | Error: {}", to, e.getMessage());
+            throw new RuntimeException("Failed to send email with attachment: " + e.getMessage(), e);
         }
     }
-
-
 }

@@ -34,14 +34,49 @@ public class ExpenseService {
     }
 
 //    Retrieves all expenses for the current month based on the start and end date.
-    public List<ExpenseDTO> getCurrentMonthExpensesForCurrentUser() {
-        ProfileEntity profile = profileService.getCurrentProfile();
-        LocalDate now = LocalDate.now();
-        LocalDate startDate = now.withDayOfMonth(1);
-        LocalDate endDate = now.withDayOfMonth(now.lengthOfMonth());
-        List<ExpenseEntity> list = expenseRepository.findByProfileIdAndDateBetween(profile.getId(),startDate,endDate);
-        return list.stream().map(this::toDTO).toList();
+public List<ExpenseDTO> getCurrentMonthExpensesForCurrentUser() {
+
+    ProfileEntity profile = profileService.getCurrentProfile();
+    Long profileId = profile.getId();
+
+    LocalDate now = LocalDate.now();
+    LocalDate startDate = now.withDayOfMonth(1);
+    LocalDate endDate = now.withDayOfMonth(now.lengthOfMonth());
+
+    // 1️⃣ Try current month first
+    List<ExpenseEntity> currentMonthExpenses =
+            expenseRepository.findByProfileIdAndDateBetween(profileId, startDate, endDate);
+
+    if (!currentMonthExpenses.isEmpty()) {
+        return currentMonthExpenses.stream().map(this::toDTO).toList();
     }
+
+    // 2️⃣ If current month empty → search backward month by month
+    LocalDate pointer = startDate.minusMonths(1);
+
+    while (true) {
+
+        LocalDate monthStart = pointer.withDayOfMonth(1);
+        LocalDate monthEnd = pointer.withDayOfMonth(pointer.lengthOfMonth());
+
+        List<ExpenseEntity> previousMonthExpenses =
+                expenseRepository.findByProfileIdAndDateBetween(profileId, monthStart, monthEnd);
+
+        if (!previousMonthExpenses.isEmpty()) {
+            return previousMonthExpenses.stream().map(this::toDTO).toList();
+        }
+
+        // stop if we reached very old date (avoid infinite loop)
+        if (pointer.isBefore(LocalDate.of(2000, 1, 1))) {
+            break;
+        }
+
+        pointer = pointer.minusMonths(1);
+    }
+
+    // 3️⃣ No expenses at all
+    return List.of();
+}
 
 //    Delete expense by id for the current user
     public void deleteExpense(Long expenseId) {
